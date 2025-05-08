@@ -92,12 +92,6 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
 --
@@ -106,6 +100,7 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- vim.keymap.set('n', '<C-i>', '<C-w><C-+>', { desc = 'Increase height of current window' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -294,6 +289,8 @@ require('lazy').setup({
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
+      local telescopeConfig = require 'telescope.config'
+      local vimgrep_arguments = { unpack(telescopeConfig.values.vimgrep_arguments) }
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -303,7 +300,14 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
-        -- pickers = {}
+        defaults = {
+          vimgrep_arguments = vimgrep_arguments,
+        },
+        pickers = {
+          find_files = {
+            find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
+          },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -560,7 +564,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -570,7 +574,6 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
-
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -654,6 +657,7 @@ require('lazy').setup({
         lua = { 'stylua' },
         typescript = { 'prettierd', 'prettier' },
         javascript = { 'prettierd', 'prettier' },
+        json = { 'prettierd', 'prettier' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -730,7 +734,7 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          ['<C-k>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
@@ -784,7 +788,7 @@ require('lazy').setup({
     name = 'catppuccin',
     priority = 1000,
     init = function()
-      vim.cmd.colorscheme 'catppuccin-frappe'
+      vim.cmd.colorscheme 'catppuccin-latte'
     end,
   },
 
@@ -856,10 +860,39 @@ require('lazy').setup({
   {
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
-    opts = {},
+    opts = {
+      expose_as_code_action = { 'all' },
+      complete_function_calls = true,
+      code_lens = 'off',
+    },
   },
   {
     'github/copilot.vim',
+  },
+  {
+    'CopilotC-Nvim/CopilotChat.nvim',
+    dependencies = {
+      { 'github/copilot.vim' }, -- or zbirenbaum/copilot.lua
+      { 'nvim-lua/plenary.nvim', branch = 'master' }, -- for curl, log and async functions
+    },
+    build = 'make tiktoken', -- Only on MacOS or Linux
+    opts = {
+      -- See Configuration section for options
+    },
+    keys = {
+      { '<leader>ch', '<cmd>CopilotChatToggle<CR>', desc = '[C]opilot C[h]at' },
+    },
+    config = function()
+      require('CopilotChat').setup {
+        mappings = {
+          reset = {
+            normal = '<C-=>',
+            insert = '<C-=>',
+          },
+        },
+      }
+    end,
+    -- See Commands section for default commands if you want to lazy load on them
   },
   {
     'lukas-reineke/indent-blankline.nvim',
@@ -867,6 +900,15 @@ require('lazy').setup({
     ---@module "ibl"
     ---@type ibl.config
     opts = {},
+  },
+  {
+    'akinsho/toggleterm.nvim',
+    version = '*',
+    config = function()
+      require('toggleterm').setup {
+        open_mapping = [[<C-`>]],
+      }
+    end,
   },
 }, {
   ui = {
